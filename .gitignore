@@ -1,0 +1,36 @@
+# Datasets (too large for GitHub)
+dataset_classification/
+dataset_lineart/
+cache/
+
+# Model weights (large binaries)
+outputs/*/best_model.pt
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# LaTeX build artifacts
+report/*.aux
+report/*.log
+report/*.out
+report/*.bbl
+report/*.blg
+report/*.fls
+report/*.fdb_latexmk
+report/*.synctex.gz
+report/*.pdf
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Course PDF (not needed in repo)
+*.pdf

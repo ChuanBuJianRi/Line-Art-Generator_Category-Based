@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Line Art Generator | Category-Guided</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0f0f13;
+      --surface: #1a1a24;
+      --surface2: #22223a;
+      --border: #2d2d44;
+      --text: #e8e8f0;
+      --text-dim: #8888a0;
+      --accent: #6c63ff;
+      --accent-light: #8b83ff;
+      --bio: #4ade80;
+      --bld: #60a5fa;
+      --veh: #f97316;
+      --radius: 16px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      text-align: center;
+      padding: 48px 20px 24px;
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-light), #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    header p {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      padding: 0 20px 60px;
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 60px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: var(--surface2);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(108, 99, 255, 0.15);
+    }
+    .drop-zone svg {
+      width: 56px;
+      height: 56px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+    .drop-zone h3 {
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    .drop-zone p {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+    .drop-zone input[type=file] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 48px 0;
+      display: none;
+    }
+    .loading.active { display: block; }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading p { color: var(--text-dim); font-size: 0.9rem; }
+
+    /* Results */
+    .results {
+      display: none;
+      margin-top: 32px;
+    }
+    .results.active { display: block; }
+
+    .classification-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .classification-card h3 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+    .category-result {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .category-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    .category-badge.biological { background: rgba(74, 222, 128, 0.15); color: var(--bio); }
+    .category-badge.building   { background: rgba(96, 165, 250, 0.15); color: var(--bld); }
+    .category-badge.vehicle    { background: rgba(249, 115, 22, 0.15); color: var(--veh); }
+
+    .confidence {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .prob-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .prob-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.85rem;
+    }
+    .prob-label {
+      width: 70px;
+      text-align: right;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+    .prob-bar-bg {
+      flex: 1;
+      height: 8px;
+      background: var(--surface2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .prob-bar {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+    .prob-bar.biological { background: var(--bio); }
+    .prob-bar.building   { background: var(--bld); }
+    .prob-bar.vehicle    { background: var(--veh); }
+    .prob-value {
+      width: 48px;
+      text-align: right;
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Image comparison */
+    .image-compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 640px) {
+      .image-compare { grid-template-columns: 1fr; }
+    }
+    .image-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .image-card-header {
+      padding: 14px 20px;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+    }
+    .image-card img {
+      width: 100%;
+      display: block;
+      background: #fff;
+    }
+    .image-card.lineart img {
+      background: #ffffff;
+    }
+
+    /* Reset button */
+    .reset-btn {
+      display: block;
+      margin: 28px auto 0;
+      padding: 12px 36px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .reset-btn:hover {
+      border-color: var(--accent);
+      background: var(--surface2);
+    }
+
+    /* Download button */
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin: 12px 20px 16px;
+      padding: 8px 20px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface2);
+      color: var(--accent-light);
+      font-size: 0.8rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .download-btn:hover {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Line Art Generator</h1>
+    <p>Drop an image and let AI classify it, then generate category-specific line art</p>
+  </header>
+
+  <div class="container">
+    <!-- Drop Zone -->
+    <div class="drop-zone" id="dropZone">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 16V4m0 0L8 8m4-4l4 4M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4"/>
+      </svg>
+      <h3>Drag & drop an image here, or click to browse</h3>
+      <p>Supports JPG / PNG / WEBP (Biological, Building, Vehicle)</p>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Classifying and generating line art ...</p>
+    </div>
+
+    <!-- Results -->
+    <div class="results" id="results">
+      <div class="classification-card">
+        <h3>Classification Result</h3>
+        <div class="category-result">
+          <span class="category-badge" id="categoryBadge"></span>
+          <span class="confidence" id="confidenceText"></span>
+        </div>
+        <div class="prob-bars" id="probBars"></div>
+      </div>
+
+      <div class="image-compare">
+        <div class="image-card">
+          <div class="image-card-header">Original Image</div>
+          <img id="originalImg" alt="original">
+        </div>
+        <div class="image-card lineart">
+          <div class="image-card-header">Generated Line Art</div>
+          <img id="lineartImg" alt="line art">
+          <a class="download-btn" id="downloadBtn" download="lineart.png">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16"/>
+            </svg>
+            Download
+          </a>
+        </div>
+      </div>
+
+      <button class="reset-btn" id="resetBtn">Try Another Image</button>
+    </div>
+  </div>
+
+  <footer>APS360 Project — Category-Guided Line Art Generation</footer>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const loading = document.getElementById('loading');
+    const results = document.getElementById('results');
+
+    const ICONS = {
+      biological: '🐾',
+      building: '🏛️',
+      vehicle: '🚗',
+    };
+
+    // Drag & Drop
+    ['dragenter', 'dragover'].forEach(e => {
+      dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.add('dragover'); });
+    });
+    ['dragleave', 'drop'].forEach(e => {
+      dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.remove('dragover'); });
+    });
+    dropZone.addEventListener('drop', ev => {
+      const file = ev.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) processFile(file);
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) processFile(fileInput.files[0]);
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      results.classList.remove('active');
+      dropZone.style.display = '';
+      fileInput.value = '';
+    });
+
+    async function processFile(file) {
+      dropZone.style.display = 'none';
+      results.classList.remove('active');
+      loading.classList.add('active');
+
+      const form = new FormData();
+      form.append('image', file);
+
+      try {
+        const resp = await fetch('/api/predict', { method: 'POST', body: form });
+        const data = await resp.json();
+
+        if (data.error) { alert(data.error); reset(); return; }
+
+        // Category badge
+        const badge = document.getElementById('categoryBadge');
+        badge.className = 'category-badge ' + data.category;
+        badge.textContent = ICONS[data.category] + ' ' + data.category_label;
+
+        // Confidence
+        document.getElementById('confidenceText').textContent = data.confidence + '%';
+
+        // Probability bars
+        const barsEl = document.getElementById('probBars');
+        barsEl.innerHTML = '';
+        const labels = { biological: 'Bio', building: 'Building', vehicle: 'Vehicle' };
+        for (const cat of ['biological', 'building', 'vehicle']) {
+          const pct = data.probabilities[cat];
+          barsEl.innerHTML += `
+            <div class="prob-row">
+              <span class="prob-label">${labels[cat]}</span>
+              <div class="prob-bar-bg"><div class="prob-bar ${cat}" style="width:${pct}%"></div></div>
+              <span class="prob-value">${pct}%</span>
+            </div>`;
+        }
+
+        // Images
+        document.getElementById('originalImg').src = data.original;
+        document.getElementById('lineartImg').src = data.lineart;
+        document.getElementById('downloadBtn').href = data.lineart;
+
+      } catch (err) {
+        alert('Request failed: ' + err.message);
+      }
+
+      loading.classList.remove('active');
+      results.classList.add('active');
+    }
+
+    function reset() {
+      loading.classList.remove('active');
+      results.classList.remove('active');
+      dropZone.style.display = '';
+    }
+  </script>
+</body>
+</html>

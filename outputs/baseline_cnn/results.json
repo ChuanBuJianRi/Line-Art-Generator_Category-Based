@@ -1,0 +1,28 @@
+{
+  "model": "baseline_cnn",
+  "best_val_acc": 0.8566666666666667,
+  "test_acc": 0.8455555555555555,
+  "per_class_acc": {
+    "biological": 0.84,
+    "building": 0.7933333333333333,
+    "vehicle": 0.9033333333333333
+  },
+  "confusion_matrix": [
+    [
+      252,
+      35,
+      13
+    ],
+    [
+      55,
+      238,
+      7
+    ],
+    [
+      9,
+      20,
+      271
+    ]
+  ],
+  "epochs_trained": 11
+}

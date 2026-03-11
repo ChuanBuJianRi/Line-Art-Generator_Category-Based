@@ -1,0 +1,8 @@
+{
+  "category": "biological",
+  "best_val_loss": 0.3355321574211121,
+  "test_loss": 0.3371376526355743,
+  "test_dice": 0.9807832884788513,
+  "test_iou": 0.9622951332728068,
+  "epochs_trained": 30
+}

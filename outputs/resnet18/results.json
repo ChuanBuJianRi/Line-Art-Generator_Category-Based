@@ -1,0 +1,28 @@
+{
+  "model": "resnet18",
+  "best_val_acc": 0.9844444444444445,
+  "test_acc": 0.9877777777777778,
+  "per_class_acc": {
+    "biological": 0.9966666666666667,
+    "building": 0.9733333333333334,
+    "vehicle": 0.9933333333333333
+  },
+  "confusion_matrix": [
+    [
+      299,
+      0,
+      1
+    ],
+    [
+      6,
+      292,
+      2
+    ],
+    [
+      1,
+      1,
+      298
+    ]
+  ],
+  "epochs_trained": 10
+}

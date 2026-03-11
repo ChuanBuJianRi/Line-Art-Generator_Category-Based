@@ -1,0 +1,8 @@
+{
+  "category": "building",
+  "best_val_loss": 0.3295569304625193,
+  "test_loss": 0.33211967309316,
+  "test_dice": 0.9786192687352498,
+  "test_iou": 0.9581382624308268,
+  "epochs_trained": 30
+}

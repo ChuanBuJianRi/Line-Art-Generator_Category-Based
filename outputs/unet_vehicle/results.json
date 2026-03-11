@@ -1,0 +1,8 @@
+{
+  "category": "vehicle",
+  "best_val_loss": 0.31163917779922484,
+  "test_loss": 0.3085696204503377,
+  "test_dice": 0.9834246166547139,
+  "test_iou": 0.9673943161964417,
+  "epochs_trained": 30
+}
